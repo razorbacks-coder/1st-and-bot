@@ -62,14 +62,14 @@ bot.on("message", async (msg) => {
 
   try {
 
-    const response = await axios.post(
+  const response = await axios.post(
   "https://openrouter.ai/api/v1/chat/completions",
   {
-    model: "meta-llama/llama-3.1-8b-instruct:free",
+    model: "microsoft/phi-3-mini-128k-instruct:free",
     messages: [
       {
         role: "system",
-        content: "Sei l'assistente della fantasy football league. Rispondi usando solo il regolamento."
+        content: "Sei 1st & Bot, l'assistente della fantasy football league. Rispondi usando solo il regolamento."
       },
       {
         role: "system",
@@ -83,7 +83,7 @@ bot.on("message", async (msg) => {
   },
   {
     headers: {
-      "Authorization": `Bearer ${apiKey}`,
+      Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
       "HTTP-Referer": "https://railway.app",
       "X-Title": "1st & Bot"
