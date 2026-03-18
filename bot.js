@@ -97,10 +97,10 @@ bot.on("message", async (msg) => {
 
   } catch(err) {
 
-    console.error(err);
+  console.error(err.response?.data || err);
 
-    bot.sendMessage(msg.chat.id,"⚠ Errore AI");
+  bot.sendMessage(msg.chat.id,"⚠ Errore AI");
 
-  }
+}
 
 });
