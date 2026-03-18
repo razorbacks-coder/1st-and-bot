@@ -1,9 +1,13 @@
 {
-  "name": "1st&bot",
+  "name": "1st-&-bot",
   "version": "1.0.0",
+  "description": "Telegram bot for Sell Low fantasy league",
   "main": "bot.js",
+  "scripts": {
+    "start": "node bot.js"
+  },
   "dependencies": {
     "node-telegram-bot-api": "^0.61.0",
-	"axios": "^1.6.0"
+    "axios": "^1.6.0"
   }
 }
