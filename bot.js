@@ -1,5 +1,10 @@
 const TelegramBot = require('node-telegram-bot-api');
 const axios = require('axios');
+const mammoth = require("mammoth");
+async function loadRules() {
+  const result = await mammoth.extractRawText({ path: "regolamento.docx" });
+  return result.value;
+}
 
 const token = process.env.BOT_TOKEN;
 const bot = new TelegramBot(token, { polling: true });
