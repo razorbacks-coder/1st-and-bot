@@ -62,14 +62,14 @@ bot.on("message", async (msg) => {
 
   try {
 
-  const response = await axios.post(
+const response = await axios.post(
   "https://openrouter.ai/api/v1/chat/completions",
   {
-    model: "microsoft/phi-3-mini-128k-instruct:free",
+    model: "openrouter/auto",
     messages: [
       {
         role: "system",
-        content: "Sei 1st & Bot, l'assistente della fantasy football league. Rispondi usando solo il regolamento."
+        content: "Sei 1st & Bot, assistente della fantasy league. Rispondi solo usando il regolamento."
       },
       {
         role: "system",
