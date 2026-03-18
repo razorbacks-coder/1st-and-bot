@@ -63,31 +63,33 @@ bot.on("message", async (msg) => {
   try {
 
     const response = await axios.post(
-      "https://openrouter.ai/api/v1/chat/completions",
+  "https://openrouter.ai/api/v1/chat/completions",
+  {
+    model: "mistralai/mistral-7b-instruct:free",
+    messages: [
       {
-        model: "mistralai/mistral-7b-instruct:free",
-        messages: [
-          {
-            role: "system",
-            content: "Sei l'assistente della fantasy football league. Rispondi usando solo il regolamento."
-          },
-          {
-            role: "system",
-            content: rulesText
-          },
-          {
-            role: "user",
-            content: question
-          }
-        ]
+        role: "system",
+        content: "Sei l'assistente della fantasy football league. Rispondi usando solo il regolamento."
       },
       {
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          "Content-Type": "application/json"
-        }
+        role: "system",
+        content: rulesText
+      },
+      {
+        role: "user",
+        content: question
       }
-    );
+    ]
+  },
+  {
+    headers: {
+      "Authorization": `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+      "HTTP-Referer": "https://railway.app",
+      "X-Title": "1st & Bot"
+    }
+  }
+);
 
     const answer = response.data.choices[0].message.content;
 
