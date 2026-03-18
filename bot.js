@@ -20,7 +20,7 @@ async function loadRules() {
   try {
 
     const result = await mammoth.extractRawText({
-      path: "rules.docx"
+      path: "regolamento.docx"
     });
 
     rulesText = result.value;
