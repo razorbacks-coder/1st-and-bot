@@ -1,44 +1,31 @@
 const TelegramBot = require('node-telegram-bot-api');
-const axios = require('axios');
-const mammoth = require('mammoth');
-const OpenAI = require("openai");
-const fs = require("fs");
+const mammoth = require("mammoth");
+const axios = require("axios");
 
-// TELEGRAM BOT
 const token = process.env.BOT_TOKEN;
 const bot = new TelegramBot(token, { polling: true });
 
-// OPENAI
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});
+const apiKey = process.env.OPENROUTER_API_KEY;
 
-// REGOLAMENTO
 let rulesText = "";
 
+// carica regolamento
 async function loadRules() {
-  try {
 
-    const result = await mammoth.extractRawText({
-      path: "regolamento.docx"
-    });
+  const result = await mammoth.extractRawText({
+    path: "rules.docx"
+  });
 
-    rulesText = result.value;
+  rulesText = result.value;
 
-    console.log("Regolamento caricato.");
+  console.log("Regolamento caricato");
 
-  } catch(err) {
-
-    console.error("Errore caricamento regolamento:", err);
-
-  }
 }
 
-// carica regolamento all'avvio
 loadRules();
 
 
-// COMANDI BASE
+// START
 
 bot.onText(/\/start/, (msg) => {
 
@@ -59,13 +46,11 @@ Esempi:
 
 
 bot.onText(/\/ping/, (msg) => {
-
-  bot.sendMessage(msg.chat.id, "✅ 1st & Bot operativo");
-
+  bot.sendMessage(msg.chat.id,"✅ Bot operativo");
 });
 
 
-// ASSISTENTE AI REGOLAMENTO
+// AI ASSISTANT
 
 bot.on("message", async (msg) => {
 
@@ -77,32 +62,34 @@ bot.on("message", async (msg) => {
 
   try {
 
-    const response = await openai.chat.completions.create({
-
-      model: "gpt-4o-mini",
-
-      messages: [
-
-        {
-          role: "system",
-          content: "Sei 1st & Bot, l'assistente ufficiale di una fantasy football league. Rispondi solo usando il regolamento della lega."
-        },
-
-        {
-          role: "system",
-          content: rulesText
-        },
-
-        {
-          role: "user",
-          content: question
+    const response = await axios.post(
+      "https://openrouter.ai/api/v1/chat/completions",
+      {
+        model: "mistralai/mistral-7b-instruct:free",
+        messages: [
+          {
+            role: "system",
+            content: "Sei l'assistente della fantasy football league. Rispondi usando solo il regolamento."
+          },
+          {
+            role: "system",
+            content: rulesText
+          },
+          {
+            role: "user",
+            content: question
+          }
+        ]
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json"
         }
+      }
+    );
 
-      ]
-
-    });
-
-    const answer = response.choices[0].message.content;
+    const answer = response.data.choices[0].message.content;
 
     bot.sendMessage(msg.chat.id, answer);
 
@@ -110,9 +97,7 @@ bot.on("message", async (msg) => {
 
     console.error(err);
 
-    bot.sendMessage(msg.chat.id,
-      "⚠ Non sono riuscito a leggere il regolamento."
-    );
+    bot.sendMessage(msg.chat.id,"⚠ Errore AI");
 
   }
 
