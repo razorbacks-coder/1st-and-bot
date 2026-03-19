@@ -10,7 +10,7 @@ const openai = new OpenAI({
 });
 
 // ⚠️ METTI QUI LO USERNAME DEL BOT (senza @)
-const botUsername = "Firstanot";
+const botUsername = "Firstanbot";
 
 // ===== BOT =====
 const bot = new TelegramBot(token, { polling: true });
@@ -90,17 +90,17 @@ bot.getMe().then((me) => {
         if (member.id === me.id) {
 
           bot.sendMessage(msg.chat.id,
-`🤖 1st & Bot è entrato nella lega!
+`🤖 1st & Bot è entrato nella lega, merde!
 
 Sono l’assistente ufficiale 🏈
 
-📖 Posso aiutarti con il regolamento
+📖 Posso aiutarvi con il regolamento
 💡 Basta taggarmi!
 
 Esempio:
 @${botUsername} quanto dura un'asta?
 
-⚠ Niente più discussioni infinite 😄`
+⚠ Niente più discussioni infinite e inutili 😄`
           );
 
         }
