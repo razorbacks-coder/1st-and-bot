@@ -2,38 +2,43 @@ const TelegramBot = require('node-telegram-bot-api');
 const mammoth = require("mammoth");
 const OpenAI = require("openai");
 
-// TELEGRAM
+// ===== CONFIG =====
 const token = process.env.BOT_TOKEN;
-const bot = new TelegramBot(token, { polling: true });
-
-// OPENAI
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
-// REGOLAMENTO
+// ⚠️ METTI QUI LO USERNAME DEL BOT (senza @)
+const botUsername = "first_and_bot";
+
+// ===== BOT =====
+const bot = new TelegramBot(token, { polling: true });
+
+// ===== REGOLAMENTO =====
 let rulesChunks = [];
 
-// 1️⃣ CARICAMENTO + SPLIT INTELLIGENTE
+// carica e divide il regolamento
 async function loadRules() {
+  try {
+    const result = await mammoth.extractRawText({
+      path: "rules.docx"
+    });
 
-  const result = await mammoth.extractRawText({
-    path: "rules.docx"
-  });
+    const text = result.value;
 
-  const text = result.value;
+    // split in paragrafi
+    rulesChunks = text.split(/\n\s*\n/);
 
-  // divide per paragrafi (IMPORTANTISSIMO)
-  rulesChunks = text.split(/\n\s*\n/);
+    console.log("✅ Regolamento caricato e diviso");
 
-  console.log("Regolamento caricato e diviso in sezioni");
-
+  } catch (err) {
+    console.error("❌ Errore regolamento:", err);
+  }
 }
 
 loadRules();
 
-
-// 2️⃣ CERCA LA PARTE PIÙ RILEVANTE
+// ===== CERCA SEZIONI RILEVANTI =====
 function findRelevantChunks(question) {
 
   const q = question.toLowerCase();
@@ -41,57 +46,50 @@ function findRelevantChunks(question) {
   return rulesChunks
     .map(chunk => ({
       text: chunk,
-      score: chunk.toLowerCase().includes(q) ? 2 :
-             q.split(" ").some(w => chunk.toLowerCase().includes(w)) ? 1 : 0
+      score:
+        chunk.toLowerCase().includes(q) ? 2 :
+        q.split(" ").some(w => chunk.toLowerCase().includes(w)) ? 1 : 0
     }))
     .filter(c => c.score > 0)
-    .slice(0, 3) // max 3 sezioni
+    .slice(0, 3)
     .map(c => c.text)
     .join("\n\n");
 
 }
 
-
-// COMANDI BASE
+// ===== COMANDI =====
 
 bot.onText(/\/start/, (msg) => {
-
   bot.sendMessage(msg.chat.id,
 `🤖 1st & Bot PRO online!
 
-Assistente intelligente della lega.
+Assistente della lega fantasy.
 
-Esempi:
-- Quando chiude la trade deadline?
-- Quanto dura un'asta?
-- Penalità taglio?`
+Scrivimi nel gruppo taggandomi:
+
+@${botUsername} quanto dura un'asta?
+`
   );
-
 });
-
 
 bot.onText(/\/ping/, (msg) => {
   bot.sendMessage(msg.chat.id, "✅ Bot operativo");
 });
 
-
-// 3️⃣ AI + RAG
+// ===== AI + MENTION MODE =====
 
 bot.on("message", async (msg) => {
 
   if (!msg.text) return;
 
-  // nome del bot (senza @)
-  const botUsername = "Firstandbot"; // 👉 CAMBIALO con username reale del bot
-
   const text = msg.text;
 
-  // controlla se il bot è menzionato
+  // risponde SOLO se taggato
   if (!text.toLowerCase().includes("@" + botUsername)) {
-    return; // NON risponde
+    return;
   }
 
-  // pulisce il messaggio togliendo il tag
+  // rimuove il tag
   const question = text.replace(new RegExp(`@${botUsername}`, "i"), "").trim();
 
   if (!question) {
@@ -99,6 +97,7 @@ bot.on("message", async (msg) => {
     return;
   }
 
+  // trova contesto regolamento
   const context = findRelevantChunks(question);
 
   if (!context) {
@@ -113,53 +112,7 @@ bot.on("message", async (msg) => {
       messages: [
         {
           role: "system",
-          content: "Sei 1st & Bot, assistente fantasy league. Rispondi SOLO con le info fornite."
-        },
-        {
-          role: "system",
-          content: context
-        },
-        {
-          role: "user",
-          content: question
-        }
-      ]
-    });
-
-    const answer = response.choices[0].message.content;
-
-    bot.sendMessage(msg.chat.id, answer);
-
-  } catch (err) {
-
-    console.error(err);
-
-    bot.sendMessage(msg.chat.id, "⚠ Errore AI");
-
-  }
-
-});
-
-  if (!msg.text) return;
-  if (msg.text.startsWith("/")) return;
-
-  const question = msg.text;
-
-  const context = findRelevantChunks(question);
-
-  if (!context) {
-    bot.sendMessage(msg.chat.id, "❓ Non ho trovato info nel regolamento.");
-    return;
-  }
-
-  try {
-
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content: "Sei 1st & Bot, assistente fantasy league. Rispondi SOLO con le info fornite. Sii chiaro e breve."
+          content: "Sei 1st & Bot, assistente fantasy league. Rispondi SOLO usando le informazioni fornite. Risposte brevi e chiare."
         },
         {
           role: "system",
