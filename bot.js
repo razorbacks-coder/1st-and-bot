@@ -80,6 +80,67 @@ bot.onText(/\/ping/, (msg) => {
 bot.on("message", async (msg) => {
 
   if (!msg.text) return;
+
+  // nome del bot (senza @)
+  const botUsername = "Firstandbot"; // 👉 CAMBIALO con username reale del bot
+
+  const text = msg.text;
+
+  // controlla se il bot è menzionato
+  if (!text.toLowerCase().includes("@" + botUsername)) {
+    return; // NON risponde
+  }
+
+  // pulisce il messaggio togliendo il tag
+  const question = text.replace(new RegExp(`@${botUsername}`, "i"), "").trim();
+
+  if (!question) {
+    bot.sendMessage(msg.chat.id, "Dimmi qualcosa 😄");
+    return;
+  }
+
+  const context = findRelevantChunks(question);
+
+  if (!context) {
+    bot.sendMessage(msg.chat.id, "❓ Non ho trovato info nel regolamento.");
+    return;
+  }
+
+  try {
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: "Sei 1st & Bot, assistente fantasy league. Rispondi SOLO con le info fornite."
+        },
+        {
+          role: "system",
+          content: context
+        },
+        {
+          role: "user",
+          content: question
+        }
+      ]
+    });
+
+    const answer = response.choices[0].message.content;
+
+    bot.sendMessage(msg.chat.id, answer);
+
+  } catch (err) {
+
+    console.error(err);
+
+    bot.sendMessage(msg.chat.id, "⚠ Errore AI");
+
+  }
+
+});
+
+  if (!msg.text) return;
   if (msg.text.startsWith("/")) return;
 
   const question = msg.text;
