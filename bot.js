@@ -10,7 +10,7 @@ const openai = new OpenAI({
 });
 
 // ⚠️ METTI QUI LO USERNAME DEL BOT (senza @)
-const botUsername = "Firstanbot";
+const botUsername = "Firstanot";
 
 // ===== BOT =====
 const bot = new TelegramBot(token, { polling: true });
@@ -66,7 +66,7 @@ bot.onText(/\/start/, (msg) => {
 
 Assistente della lega fantasy.
 
-Scrivimi nel gruppo taggandomi:
+Taggami nel gruppo:
 
 @${botUsername} quanto dura un'asta?
 `
@@ -79,37 +79,41 @@ bot.onText(/\/ping/, (msg) => {
 
 // ===== AUTO PRESENTAZIONE =====
 
-bot.on("message", (msg) => {
+bot.getMe().then((me) => {
 
-  if (msg.new_chat_members) {
+  bot.on("message", (msg) => {
 
-    msg.new_chat_members.forEach((member) => {
+    if (msg.new_chat_members) {
 
-      if (member.username === botUsername) {
+      msg.new_chat_members.forEach((member) => {
 
-        bot.sendMessage(msg.chat.id,
-`🤖 1st & Bot è entrato nella lega, merde!
+        if (member.id === me.id) {
+
+          bot.sendMessage(msg.chat.id,
+`🤖 1st & Bot è entrato nella lega!
 
 Sono l’assistente ufficiale 🏈
 
-📖 Posso aiutarvi con il regolamento, visto che da soli non ce la fate 
+📖 Posso aiutarti con il regolamento
 💡 Basta taggarmi!
 
 Esempio:
 @${botUsername} quanto dura un'asta?
 
-⚠ Niente più discussioni infinite e inutili 😄`
-        );
+⚠ Niente più discussioni infinite 😄`
+          );
 
-      }
+        }
 
-    });
+      });
 
-  }
+    }
+
+  });
 
 });
 
-// ===== AI + MENTION MODE =====
+// ===== AI + MENTION MODE (FIX TELEGRAM ENTITIES) =====
 
 bot.on("message", async (msg) => {
 
@@ -117,8 +121,22 @@ bot.on("message", async (msg) => {
 
   const text = msg.text;
 
-  // risponde SOLO se taggato
-  if (!text.toLowerCase().includes("@" + botUsername.toLowerCase())) {
+  // 🔥 controlla mention correttamente (Telegram entities)
+  const isMentioned = msg.entities && msg.entities.some(e => {
+    if (e.type === "mention") {
+      const mention = text.substring(e.offset, e.offset + e.length);
+      return mention.toLowerCase() === "@" + botUsername.toLowerCase();
+    }
+    return false;
+  });
+
+  // 🔥 controlla se reply al bot
+  const isReplyToBot = msg.reply_to_message &&
+    msg.reply_to_message.from &&
+    msg.reply_to_message.from.username &&
+    msg.reply_to_message.from.username.toLowerCase() === botUsername.toLowerCase();
+
+  if (!isMentioned && !isReplyToBot) {
     return;
   }
 
@@ -144,7 +162,7 @@ bot.on("message", async (msg) => {
       messages: [
         {
           role: "system",
-          content: "Sei 1st & Bot, assistente fantasy league. Rispondi SOLO usando le informazioni fornite. Sii chiaro e sintetico."
+          content: "Sei 1st & Bot, assistente fantasy league. Rispondi SOLO usando le informazioni fornite. Sii chiaro e breve."
         },
         {
           role: "system",
