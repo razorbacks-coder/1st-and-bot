@@ -121,17 +121,31 @@ bot.on("message", async (msg) => {
 
   const text = msg.text;
 
-  // 🔥 controlla mention correttamente (Telegram entities)
-  const isMentioned = msg.entities && msg.entities.some(e => {
-    if (e.type === "mention") {
-      const mention = text.substring(e.offset, e.offset + e.length);
-      return mention.toLowerCase() === "@" + botUsername.toLowerCase();
-    }
-    return false;
-  });
+  let isMentioned = false;
 
-  // 🔥 controlla se reply al bot
-  const isReplyToBot = msg.reply_to_message &&
+  // 🔥 controllo entities (mention + text_mention)
+  if (msg.entities) {
+    for (let e of msg.entities) {
+
+      if (e.type === "mention") {
+        const mention = text.substring(e.offset, e.offset + e.length);
+        if (mention.toLowerCase() === "@" + botUsername.toLowerCase()) {
+          isMentioned = true;
+        }
+      }
+
+      if (e.type === "text_mention") {
+        if (e.user && e.user.username && e.user.username.toLowerCase() === botUsername.toLowerCase()) {
+          isMentioned = true;
+        }
+      }
+
+    }
+  }
+
+  // 🔥 controllo reply al bot
+  const isReplyToBot =
+    msg.reply_to_message &&
     msg.reply_to_message.from &&
     msg.reply_to_message.from.username &&
     msg.reply_to_message.from.username.toLowerCase() === botUsername.toLowerCase();
@@ -140,7 +154,7 @@ bot.on("message", async (msg) => {
     return;
   }
 
-  // rimuove il tag
+  // pulizia testo (rimuove mention)
   const question = text.replace(new RegExp(`@${botUsername}`, "i"), "").trim();
 
   if (!question) {
@@ -162,7 +176,7 @@ bot.on("message", async (msg) => {
       messages: [
         {
           role: "system",
-          content: "Sei 1st & Bot, assistente fantasy league. Rispondi SOLO usando le informazioni fornite. Sii chiaro e breve."
+          content: "Sei 1st & Bot, assistente fantasy league. Rispondi SOLO usando le informazioni fornite."
         },
         {
           role: "system",
