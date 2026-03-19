@@ -12,49 +12,70 @@ const openai = new OpenAI({
 });
 
 // REGOLAMENTO
-let rulesText = "";
+let rulesChunks = [];
 
+// 1️⃣ CARICAMENTO + SPLIT INTELLIGENTE
 async function loadRules() {
-  try {
-    const result = await mammoth.extractRawText({
-      path: "rules.docx"
-    });
 
-    rulesText = result.value;
+  const result = await mammoth.extractRawText({
+    path: "rules.docx"
+  });
 
-    console.log("Regolamento caricato");
+  const text = result.value;
 
-  } catch (err) {
-    console.error("Errore regolamento:", err);
-  }
+  // divide per paragrafi (IMPORTANTISSIMO)
+  rulesChunks = text.split(/\n\s*\n/);
+
+  console.log("Regolamento caricato e diviso in sezioni");
+
 }
 
 loadRules();
 
 
-// COMANDI
+// 2️⃣ CERCA LA PARTE PIÙ RILEVANTE
+function findRelevantChunks(question) {
+
+  const q = question.toLowerCase();
+
+  return rulesChunks
+    .map(chunk => ({
+      text: chunk,
+      score: chunk.toLowerCase().includes(q) ? 2 :
+             q.split(" ").some(w => chunk.toLowerCase().includes(w)) ? 1 : 0
+    }))
+    .filter(c => c.score > 0)
+    .slice(0, 3) // max 3 sezioni
+    .map(c => c.text)
+    .join("\n\n");
+
+}
+
+
+// COMANDI BASE
 
 bot.onText(/\/start/, (msg) => {
+
   bot.sendMessage(msg.chat.id,
-`🤖 1st & Bot online!
+`🤖 1st & Bot PRO online!
 
-Sono l'assistente della lega.
-
-Chiedimi qualsiasi cosa sul regolamento.
+Assistente intelligente della lega.
 
 Esempi:
 - Quando chiude la trade deadline?
 - Quanto dura un'asta?
-- Penalità taglio giocatore?`
+- Penalità taglio?`
   );
+
 });
+
 
 bot.onText(/\/ping/, (msg) => {
   bot.sendMessage(msg.chat.id, "✅ Bot operativo");
 });
 
 
-// AI ASSISTANT
+// 3️⃣ AI + RAG
 
 bot.on("message", async (msg) => {
 
@@ -63,6 +84,13 @@ bot.on("message", async (msg) => {
 
   const question = msg.text;
 
+  const context = findRelevantChunks(question);
+
+  if (!context) {
+    bot.sendMessage(msg.chat.id, "❓ Non ho trovato info nel regolamento.");
+    return;
+  }
+
   try {
 
     const response = await openai.chat.completions.create({
@@ -70,11 +98,11 @@ bot.on("message", async (msg) => {
       messages: [
         {
           role: "system",
-          content: "Sei 1st & Bot, assistente della fantasy league. Rispondi SOLO usando il regolamento. Se non trovi la risposta, dillo chiaramente."
+          content: "Sei 1st & Bot, assistente fantasy league. Rispondi SOLO con le info fornite. Sii chiaro e breve."
         },
         {
           role: "system",
-          content: rulesText
+          content: context
         },
         {
           role: "user",
