@@ -9,7 +9,7 @@ const openai = new OpenAI({
 });
 
 // ⚠️ METTI QUI LO USERNAME DEL BOT (senza @)
-const botUsername = "first_and_bot";
+const botUsername = "firstandbot";
 
 // ===== BOT =====
 const bot = new TelegramBot(token, { polling: true });
