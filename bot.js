@@ -11,9 +11,9 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
-const LEAGUE_ID = "10241"; // <-- CAMBIA QUI
+const LEAGUE_ID = "10241";
 
-// ===== USERNAME =====
+// ===== USERNAME BOT =====
 let botUsername = "";
 
 bot.getMe().then(me => {
@@ -53,7 +53,14 @@ async function getPlayers() {
   return await res.text();
 }
 
-// ===== PARSING =====
+async function getFranchises() {
+  const url = `https://api.myfantasyleague.com/2026/export?TYPE=franchises&L=${LEAGUE_ID}`;
+  const res = await fetch(url);
+  const xml = await res.text();
+  return await parseXML(xml);
+}
+
+// ===== PARSER XML =====
 async function parseXML(xml) {
   const parser = new xml2js.Parser();
   return await parser.parseStringPromise(xml);
@@ -68,17 +75,14 @@ async function findPlayer(name) {
   if (!data.players || !data.players.player) return null;
 
   const players = data.players.player;
-
   const search = name.toLowerCase();
 
   return players.find(p => {
 
     const fullName = p.$.name.toLowerCase();
 
-    // match normale
     if (fullName.includes(search)) return true;
 
-    // match inverso (nome cognome)
     const parts = fullName.split(", ");
     if (parts.length === 2) {
       const flipped = parts[1] + " " + parts[0];
@@ -89,17 +93,18 @@ async function findPlayer(name) {
   });
 }
 
-// ===== TROVA CONTRATTO =====
+// ===== TROVA PLAYER NEL ROSTER =====
 async function findPlayerInRosters(playerId) {
 
   const xml = await getRosters();
   const data = await parseXML(xml);
 
-  if (!data.league || !data.league.rosters) return null;
+  const franchises = data.rosters.franchise;
 
-  const rosters = data.league.rosters[0].franchise;
+  const franchisesData = await getFranchises();
+  const franchiseList = franchisesData.league.franchises[0].franchise;
 
-  for (let team of rosters) {
+  for (let team of franchises) {
 
     if (!team.player) continue;
 
@@ -107,10 +112,12 @@ async function findPlayerInRosters(playerId) {
 
       if (p.$.id == playerId) {
 
+        const franchise = franchiseList.find(f => f.$.id === team.$.id);
+
         return {
-          team: team.$.id,
-          salary: parseInt(p.$.salary || 1000),
-          years: 1
+          team: franchise ? franchise.$.name : team.$.id,
+          salary: parseInt(p.$.salary || 0),
+          years: parseInt(p.$.contractYear || 1)
         };
       }
     }
@@ -121,12 +128,10 @@ async function findPlayerInRosters(playerId) {
 
 // ===== CALCOLO TAG =====
 function calculateTagCost(salary, years) {
-
-  // semplice formula esempio (puoi cambiarla)
   return Math.round(salary * 1.2);
 }
 
-// ===== RICERCA REGOLAMENTO =====
+// ===== REGOLAMENTO SEARCH =====
 function findRelevantChunks(question) {
 
   const words = question.toLowerCase().split(" ");
@@ -213,7 +218,7 @@ bot.onText(/\/tag (.+)/, async (msg, match) => {
     const player = await findPlayer(name);
 
     if (!player) {
-      bot.sendMessage(msg.chat.id, "❌ Giocatore non trovato");
+      bot.sendMessage(msg.chat.id, "❌ Giocatore non trovato\n💡 prova solo cognome");
       return;
     }
 
@@ -232,13 +237,10 @@ bot.onText(/\/tag (.+)/, async (msg, match) => {
 👤 ${player.$.name}
 🏈 Team: ${info.team}
 
-💰 Salario attuale: ${info.salary}
+💰 Salario: ${info.salary}
 📅 Anni: ${info.years}
 
-🔥 Tag stimato: ${tagCost}
-
-💡 Tip:
-valuta cap e durata prima di taggare`
+🔥 Tag: ${tagCost}`
     );
 
   } catch (err) {
