@@ -65,6 +65,8 @@ async function findPlayer(name) {
   const xml = await getPlayers();
   const data = await parseXML(xml);
 
+  if (!data.players || !data.players.player) return null;
+
   const players = data.players.player;
 
   return players.find(p =>
@@ -78,21 +80,22 @@ async function findPlayerInRosters(playerId) {
   const xml = await getRosters();
   const data = await parseXML(xml);
 
-  const franchises = data.league.franchises[0].franchise;
+  if (!data.league || !data.league.rosters) return null;
+
   const rosters = data.league.rosters[0].franchise;
 
   for (let team of rosters) {
+
     const players = team.player || [];
 
     for (let p of players) {
+
       if (p.$.id === playerId) {
 
-        const franchise = franchises.find(f => f.$.id === team.$.id);
-
         return {
-          team: franchise.$.name,
+          team: team.$.id,
           salary: parseInt(p.$.salary || 1000),
-          years: parseInt(p.$.contractYear || 1)
+          years: 1
         };
       }
     }
