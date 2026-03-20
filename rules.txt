@@ -1,0 +1,219 @@
+[LEGA]
+1st & Goal è una fantasy league dynasty:
+- i roster vengono mantenuti negli anni
+- ogni giocatore ha contratto (salario + anni)
+- si gioca head-to-head
+
+---
+
+[CALENDARIO]
+
+PRESEASON:
+- febbraio → inizio NFL
+
+REGULAR SEASON:
+- week 1 → week 16 NFL
+
+POST SEASON:
+- dopo finale fino a metà gennaio
+
+OFF SEASON:
+- pausa totale attività
+
+---
+
+[ROSTER]
+
+Starting lineup:
+- 1 QB
+- 5 offensive (RB/WR/TE flex inclusi)
+- 1 K
+- 9 difensivi
+
+Totale: 16 giocatori
+
+---
+
+[FORMAZIONE]
+
+- va inviata entro kickoff
+- non si possono schierare giocatori già giocati
+
+Se non inviata:
+- partita persa
+- -1 vittoria dal record
+- multa 500$
+- possibile perdita pick
+
+---
+
+[CAP]
+
+Salary Cap: 43000
+Roster Cap:
+- RS: 40
+- PRS: 50
+
+Annuality Cap: 90 anni
+
+NON si può mai sforare il cap.
+
+---
+
+[ASTE UFA]
+
+Durata:
+- massimo 10 giorni
+
+Chiusura anticipata:
+- se nessun rilancio per 3 giorni → asta vinta
+
+Rilanci:
+- minimo +200$
+
+Offerta:
+- anni × salario
+
+Esempio:
+1500x2 = 3000 valore
+
+---
+
+[BUSTE CHIUSE]
+
+Se asta arriva a 10 giorni:
+
+- si passa a 48 ore di buste chiuse
+
+Vince:
+- offerta con valore più alto (anni × salario)
+
+Parità:
+1. più anni
+2. nuova asta 24h
+
+---
+
+[REGOLE ASTE]
+
+- non si può ritirare un’offerta
+- se sfori il cap → perde e passa al secondo
+- non puoi rilanciare su te stesso
+
+---
+
+[TAGLI]
+
+STANDARD:
+- 55% per ogni anno residuo
+
+Esempi:
+- 1000x1 → 550$
+- 1000x2 → 1100$
+
+AGEVOLATI (preseason):
+- 1 anno → 10%
+- 2 anni → 35%
+- 3 anni → 75%
+- 4 anni → 110%
+- 5+ → 150%
+
+---
+
+[TRADES]
+
+- permessi PRS e RS (fino week 8)
+- devono essere approvati dai commish
+- vietati se squilibrano la lega
+
+---
+
+[WAIVERS]
+
+- priorità a chi è più basso in classifica
+
+Contratto:
+- 500$ per 1 anno
+
+Limiti:
+- max 2 giocatori a settimana
+
+---
+
+[BLIND WAIVERS]
+
+- buste chiuse
+- offerta = anni × salario
+- minimo 350$
+
+---
+
+[TAGS]
+
+Tipologie:
+- ET (Exclusive)
+- FT (Franchise)
+- TT (Transitional)
+- RT (Max / Med / Min)
+
+Limiti:
+- ET/FT → max 1
+- TT → max 1
+- RT → max 2
+
+Durata:
+- minimo 2 anni
+- massimo 3 anni
+
+Diritti:
+- pareggiare offerte
+- ricevere compensazioni
+
+---
+
+[LOGICA TAG]
+
+Se un giocatore è taggato:
+- può ricevere offerte
+- il team originale può pareggiare
+
+Se NON pareggia:
+- riceve compensazione draft
+
+---
+
+[CONTRATTI]
+
+- ogni giocatore ha salario + anni
+- max contratto: 9 anni
+
+Estensioni:
+- aumentano il salario (fino al 25%)
+
+---
+
+[INJURY LIST]
+
+- giocatori IR possono essere messi in IL
+- non occupano posto roster
+- ma contano su cap
+
+---
+
+[BACKUP PRELATION]
+
+Se giocatore in IR:
+- puoi prendere sostituto stesso team
+- costo: 150$
+
+---
+
+[KEYWORDS]
+
+asta free agency rilanci buste chiuse
+taglio penalità cap
+tag franchise rfa ufa
+trade scambi deadline
+waivers blind waivers
+contratti salary cap roster
+injury list backup prelation
