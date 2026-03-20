@@ -96,34 +96,56 @@ async function findPlayer(name) {
 // ===== TROVA PLAYER NEL ROSTER =====
 async function findPlayerInRosters(playerId) {
 
-  const xml = await getRosters();
-  const data = await parseXML(xml);
+  try {
 
-  const franchises = data.rosters.franchise;
+    const xml = await getRosters();
+    const data = await parseXML(xml);
 
-  const franchisesData = await getFranchises();
-  const franchiseList = franchisesData.league.franchises[0].franchise;
+    if (!data.rosters || !data.rosters.franchise) {
+      console.log("❌ struttura roster errata");
+      return null;
+    }
 
-  for (let team of franchises) {
+    const franchises = Array.isArray(data.rosters.franchise)
+      ? data.rosters.franchise
+      : [data.rosters.franchise];
 
-    if (!team.player) continue;
+    const franchisesData = await getFranchises();
 
-    for (let p of team.player) {
+    const franchiseList =
+      franchisesData.league &&
+      franchisesData.league.franchises &&
+      franchisesData.league.franchises[0].franchise
+        ? franchisesData.league.franchises[0].franchise
+        : [];
 
-      if (p.$.id == playerId) {
+    for (let team of franchises) {
 
-        const franchise = franchiseList.find(f => f.$.id === team.$.id);
+      const players = team.player
+        ? (Array.isArray(team.player) ? team.player : [team.player])
+        : [];
 
-        return {
-          team: franchise ? franchise.$.name : team.$.id,
-          salary: parseInt(p.$.salary || 0),
-          years: parseInt(p.$.contractYear || 1)
-        };
+      for (let p of players) {
+
+        if (p.$.id == playerId) {
+
+          const franchise = franchiseList.find(f => f.$.id === team.$.id);
+
+          return {
+            team: franchise ? franchise.$.name : team.$.id,
+            salary: parseInt(p.$.salary || 0),
+            years: parseInt(p.$.contractYear || 1)
+          };
+        }
       }
     }
-  }
 
-  return null;
+    return null;
+
+  } catch (err) {
+    console.error("🔥 ERRORE findPlayerInRosters:", err);
+    return null;
+  }
 }
 
 // ===== CALCOLO TAG =====
