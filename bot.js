@@ -1,9 +1,9 @@
 const TelegramBot = require('node-telegram-bot-api');
-const fs = require('fs');
 const OpenAI = require('openai');
+const mammoth = require("mammoth");
 
 // ===== CONFIG =====
-const bot = new TelegramBot(process.env.TELEGRAM_TOKEN, { polling: true });
+const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
@@ -17,29 +17,40 @@ bot.getMe().then(me => {
   console.log("🤖 Bot username:", botUsername);
 });
 
-// ===== CARICAMENTO REGOLAMENTO =====
+// ===== CARICAMENTO DOCX =====
 let regolamentoText = "";
+let regolamentoChunks = [];
 
-try {
-  regolamentoText = fs.readFileSync("regolamento.txt", "utf-8");
-  console.log("📜 Regolamento caricato");
-} catch (err) {
-  console.error("Errore caricamento regolamento");
+async function loadDocx() {
+  try {
+
+    const result = await mammoth.extractRawText({
+      path: "rules.docx"
+    });
+
+    regolamentoText = result.value;
+
+    console.log("📜 Regolamento DOCX caricato");
+
+    regolamentoChunks = splitRegolamento(regolamentoText);
+
+  } catch (err) {
+    console.error("❌ Errore lettura DOCX:", err.message);
+  }
 }
 
-// ===== PARSING IN SEZIONI =====
+loadDocx();
+
+// ===== PARSING =====
 function splitRegolamento(text) {
 
-  // divide per paragrafi lunghi
   const chunks = text.split(/\n\s*\n/);
 
   return chunks.filter(c => c.length > 50);
 
 }
 
-const regolamentoChunks = splitRegolamento(regolamentoText);
-
-// ===== MEMORIA CONVERSAZIONE =====
+// ===== MEMORIA =====
 const memory = {};
 
 function getUserMemory(userId) {
@@ -49,7 +60,7 @@ function getUserMemory(userId) {
   return memory[userId];
 }
 
-// ===== TROVA CONTENUTO MIGLIORE =====
+// ===== RICERCA =====
 function findRelevantChunks(question) {
 
   const words = question.toLowerCase().split(" ");
@@ -128,7 +139,6 @@ Se non sei sicuro, dillo chiaramente.
 
     const answer = response.choices[0].message.content;
 
-    // salva memoria (ultimi 5 messaggi)
     history.push({ role: "user", content: question });
     history.push({ role: "assistant", content: answer });
 
@@ -145,7 +155,7 @@ Se non sei sicuro, dillo chiaramente.
 
 }
 
-// ===== EVENTO NUOVO MEMBRO =====
+// ===== AUTO INTRO =====
 bot.on("new_chat_members", (msg) => {
 
   msg.new_chat_members.forEach(user => {
@@ -155,9 +165,9 @@ bot.on("new_chat_members", (msg) => {
       bot.sendMessage(msg.chat.id,
 `🤖 1st & Bot online!
 
-Sono l'assistente della lega.
+Sono l'assistente della lega 🏈
 
-Chiamami con @${botUsername} oppure rispondi a un mio messaggio.
+Taggami oppure rispondi a un mio messaggio.
 
 Esempi:
 - quanto dura un'asta?
@@ -171,7 +181,7 @@ Esempi:
 
 });
 
-// ===== LISTENER PRINCIPALE =====
+// ===== LISTENER =====
 bot.on("message", async (msg) => {
 
   if (!msg.text) return;
@@ -180,7 +190,6 @@ bot.on("message", async (msg) => {
 
   let isMentioned = false;
 
-  // ENTITY CHECK
   if (msg.entities) {
     for (let e of msg.entities) {
 
@@ -200,12 +209,10 @@ bot.on("message", async (msg) => {
     }
   }
 
-  // fallback
   if (text.toLowerCase().includes("@" + botUsername.toLowerCase())) {
     isMentioned = true;
   }
 
-  // reply
   const isReply =
     msg.reply_to_message &&
     msg.reply_to_message.from &&
