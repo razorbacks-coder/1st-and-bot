@@ -1,6 +1,6 @@
 const TelegramBot = require('node-telegram-bot-api');
 const OpenAI = require('openai');
-const mammoth = require("mammoth");
+const fs = require("fs");
 
 // ===== CONFIG =====
 const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
@@ -9,7 +9,7 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
-// ===== USERNAME BOT =====
+// ===== USERNAME =====
 let botUsername = "";
 
 bot.getMe().then(me => {
@@ -17,55 +17,34 @@ bot.getMe().then(me => {
   console.log("🤖 Bot username:", botUsername);
 });
 
-// ===== CARICAMENTO DOCX =====
+// ===== CARICAMENTO REGOLAMENTO TXT =====
 let regolamentoText = "";
 let regolamentoChunks = [];
 
-async function loadDocx() {
-  try {
+try {
+  regolamentoText = fs.readFileSync("rules.txt", "utf-8");
+  console.log("📜 Regolamento caricato");
 
-    const result = await mammoth.extractRawText({
-      path: "rules.docx"
-    });
+  regolamentoChunks = regolamentoText.split(/\n\s*\n/);
 
-    regolamentoText = result.value;
-
-    console.log("📜 Regolamento DOCX caricato");
-
-    regolamentoChunks = splitRegolamento(regolamentoText);
-
-  } catch (err) {
-    console.error("❌ Errore lettura DOCX:", err.message);
-  }
-}
-
-loadDocx();
-
-// ===== PARSING =====
-function splitRegolamento(text) {
-
-  const chunks = text.split(/\n\s*\n/);
-
-  return chunks.filter(c => c.length > 50);
-
+} catch (err) {
+  console.error("❌ Errore caricamento regolamento:", err.message);
 }
 
 // ===== MEMORIA =====
 const memory = {};
 
 function getUserMemory(userId) {
-  if (!memory[userId]) {
-    memory[userId] = [];
-  }
+  if (!memory[userId]) memory[userId] = [];
   return memory[userId];
 }
 
-// ===== RICERCA =====
+// ===== RICERCA SEMPLICE =====
 function findRelevantChunks(question) {
 
   const words = question.toLowerCase().split(" ");
 
-  let bestChunks = [];
+  let bestChunk = "";
   let bestScore = 0;
 
   for (let chunk of regolamentoChunks) {
@@ -73,31 +52,26 @@ function findRelevantChunks(question) {
     let score = 0;
 
     for (let w of words) {
-      if (chunk.toLowerCase().includes(w)) {
-        score++;
-      }
+      if (chunk.toLowerCase().includes(w)) score++;
     }
 
     if (score > bestScore) {
       bestScore = score;
-      bestChunks = [chunk];
+      bestChunk = chunk;
     }
-
   }
 
-  return bestChunks.join("\n");
-
+  return bestChunk;
 }
 
-// ===== GESTIONE DOMANDA =====
+// ===== RISPOSTA =====
 async function handleQuestion(msg, question) {
 
   const userId = msg.from.id;
-
   const context = findRelevantChunks(question);
 
-  if (!context || context.length < 20) {
-    bot.sendMessage(msg.chat.id, "🤔 Non trovo questa informazione nel regolamento. Prova a riformulare.");
+  if (!context) {
+    bot.sendMessage(msg.chat.id, "🤔 Non trovo info nel regolamento.");
     return;
   }
 
@@ -111,18 +85,22 @@ async function handleQuestion(msg, question) {
         {
           role: "system",
           content: `
-Sei 1st & Bot, assistente della fantasy league.
+Sei 1st & Bot, assistente fantasy football.
 
-Rispondi SOLO usando il regolamento fornito.
+Rispondi SOLO usando il regolamento.
 
-Formato risposta:
-📜 Regola:
-(spiegazione dal regolamento)
+Formato OBBLIGATORIO:
 
-🧠 Spiegazione:
+🏈 REGOLA
+(spiegazione breve)
+
+🧠 SPIEGAZIONE
 (spiegazione semplice)
 
-Se non sei sicuro, dillo chiaramente.
+💡 CONSIGLIO
+(consiglio pratico strategico)
+
+Se non sei sicuro → dillo chiaramente.
 `
         },
         {
@@ -142,17 +120,14 @@ Se non sei sicuro, dillo chiaramente.
     history.push({ role: "user", content: question });
     history.push({ role: "assistant", content: answer });
 
-    if (history.length > 10) {
-      history.splice(0, 2);
-    }
+    if (history.length > 10) history.splice(0, 2);
 
     bot.sendMessage(msg.chat.id, answer);
 
   } catch (err) {
     console.error(err);
-    bot.sendMessage(msg.chat.id, "⚠ Errore AI");
+    bot.sendMessage(msg.chat.id, "⚠ errore AI");
   }
-
 }
 
 // ===== AUTO INTRO =====
@@ -163,16 +138,18 @@ bot.on("new_chat_members", (msg) => {
     if (user.username === botUsername) {
 
       bot.sendMessage(msg.chat.id,
-`🤖 1st & Bot online!
+`🤖 1st & Bot ONLINE
 
-Sono l'assistente della lega 🏈
+Sono l’assistente ufficiale della lega 🏈
 
-Taggami oppure rispondi a un mio messaggio.
+Chiedimi:
+- aste
+- tagli
+- trade
+- cap
+- regolamento
 
-Esempi:
-- quanto dura un'asta?
-- trade deadline?
-- penalità taglio?`
+Taggami oppure rispondi a un mio messaggio 👇`
       );
 
     }
@@ -192,20 +169,12 @@ bot.on("message", async (msg) => {
 
   if (msg.entities) {
     for (let e of msg.entities) {
-
       if (e.type === "mention") {
         const mention = text.substring(e.offset, e.offset + e.length);
         if (mention.toLowerCase() === "@" + botUsername.toLowerCase()) {
           isMentioned = true;
         }
       }
-
-      if (e.type === "text_mention") {
-        if (e.user && e.user.username === botUsername) {
-          isMentioned = true;
-        }
-      }
-
     }
   }
 
@@ -218,14 +187,12 @@ bot.on("message", async (msg) => {
     msg.reply_to_message.from &&
     msg.reply_to_message.from.username === botUsername;
 
-  if (!isMentioned && !isReply && msg.chat.type !== "private") {
-    return;
-  }
+  if (!isMentioned && !isReply && msg.chat.type !== "private") return;
 
   const question = text.replace(new RegExp(`@${botUsername}`, "i"), "").trim();
 
   if (!question) {
-    bot.sendMessage(msg.chat.id, "Dimmi qualcosa 😄");
+    bot.sendMessage(msg.chat.id, "Scrivi qualcosa 😄");
     return;
   }
 
