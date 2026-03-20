@@ -111,7 +111,7 @@ Esempi:
 - 1000x1 → 550$
 - 1000x2 → 1100$
 
-AGEVOLATI (entro domenica 22 marzo 2026) (preseason):
+AGEVOLATI (preseason):
 - 1 anno → 10%
 - 2 anni → 35%
 - 3 anni → 75%
@@ -217,3 +217,25 @@ trade scambi deadline
 waivers blind waivers
 contratti salary cap roster
 injury list backup prelation
+
+[CALENDARIO SCADENZE]
+
+dal 09/03 al 21/03: tagli senza perdita salario e con restituzione
+dell’annualità.
+dal 09/03 al 21/03: assegnazioni vincoli.
+dal 23/03 al 14/04: apertura scambi ed aste su UFA e RFA.
+entro il 22/04: comunicazione annualità RFA che non hanno subito offerte.
+dal 22/04 al 02/05: chiusura attività per il draft NFL.
+Maggio 2025 (da decidere): rookie draft 2025. 
+Settimana successiva alla fine del rookie draft: riapertura del mercato FA
+sino al 23/7.
+Agosto: equiparato Off Season chiusura attività.
+Lunedì precedente week 1 NFL: Waivers List 4 giocatori (facoltativa con
+agevolazioni, vedi
+capitolo del regolamento relativo ai waivers).
+Estensioni contrattuali, Contratti Rookies ed eventuali Tagli (deadline
+Domenica precedente
+a week 1).
+Lunedì precedente all’inizio della NFL: Comunicazione Roster Finali.
+Trade deadline, ore 23:59 del giorno in cui viene fissata in NFL.
+Fine stagione: il terzo martedì successivo a week 17 in NFL.
