@@ -69,9 +69,24 @@ async function findPlayer(name) {
 
   const players = data.players.player;
 
-  return players.find(p =>
-    p.$.name.toLowerCase().includes(name.toLowerCase())
-  );
+  const search = name.toLowerCase();
+
+  return players.find(p => {
+
+    const fullName = p.$.name.toLowerCase();
+
+    // match normale
+    if (fullName.includes(search)) return true;
+
+    // match inverso (nome cognome)
+    const parts = fullName.split(", ");
+    if (parts.length === 2) {
+      const flipped = parts[1] + " " + parts[0];
+      if (flipped.includes(search)) return true;
+    }
+
+    return false;
+  });
 }
 
 // ===== TROVA CONTRATTO =====
@@ -86,11 +101,11 @@ async function findPlayerInRosters(playerId) {
 
   for (let team of rosters) {
 
-    const players = team.player || [];
+    if (!team.player) continue;
 
-    for (let p of players) {
+    for (let p of team.player) {
 
-      if (p.$.id === playerId) {
+      if (p.$.id == playerId) {
 
         return {
           team: team.$.id,
