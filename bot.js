@@ -26,7 +26,7 @@ let regolamentoText = "";
 let regolamentoChunks = [];
 
 try {
-  regolamentoText = fs.readFileSync("rules_clean.txt", "utf-8");
+  regolamentoText = fs.readFileSync("rules.txt", "utf-8");
   regolamentoChunks = regolamentoText.split(/\n\s*\n/);
   console.log("📜 Regolamento caricato");
 } catch (err) {
