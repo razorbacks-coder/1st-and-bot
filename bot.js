@@ -1,6 +1,8 @@
 const TelegramBot = require('node-telegram-bot-api');
 const OpenAI = require('openai');
 const fs = require("fs");
+const fetch = require("node-fetch");
+const xml2js = require("xml2js");
 
 // ===== CONFIG =====
 const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
@@ -8,6 +10,8 @@ const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
+
+const LEAGUE_ID = "10241"; // <-- CAMBIA QUI
 
 // ===== USERNAME =====
 let botUsername = "";
@@ -17,29 +21,94 @@ bot.getMe().then(me => {
   console.log("🤖 Bot username:", botUsername);
 });
 
-// ===== CARICAMENTO REGOLAMENTO TXT =====
+// ===== REGOLAMENTO =====
 let regolamentoText = "";
 let regolamentoChunks = [];
 
 try {
-  regolamentoText = fs.readFileSync("rules.txt", "utf-8");
-  console.log("📜 Regolamento caricato");
-
+  regolamentoText = fs.readFileSync("rules_clean.txt", "utf-8");
   regolamentoChunks = regolamentoText.split(/\n\s*\n/);
-
+  console.log("📜 Regolamento caricato");
 } catch (err) {
-  console.error("❌ Errore caricamento regolamento:", err.message);
+  console.error("❌ Errore regolamento:", err.message);
 }
 
 // ===== MEMORIA =====
 const memory = {};
-
 function getUserMemory(userId) {
   if (!memory[userId]) memory[userId] = [];
   return memory[userId];
 }
 
-// ===== RICERCA SEMPLICE =====
+// ===== MFL FETCH =====
+async function getRosters() {
+  const url = `https://api.myfantasyleague.com/2026/export?TYPE=rosters&L=${LEAGUE_ID}`;
+  const res = await fetch(url);
+  return await res.text();
+}
+
+async function getPlayers() {
+  const url = `https://api.myfantasyleague.com/2026/export?TYPE=players`;
+  const res = await fetch(url);
+  return await res.text();
+}
+
+// ===== PARSING =====
+async function parseXML(xml) {
+  const parser = new xml2js.Parser();
+  return await parser.parseStringPromise(xml);
+}
+
+// ===== TROVA GIOCATORE =====
+async function findPlayer(name) {
+
+  const xml = await getPlayers();
+  const data = await parseXML(xml);
+
+  const players = data.players.player;
+
+  return players.find(p =>
+    p.$.name.toLowerCase().includes(name.toLowerCase())
+  );
+}
+
+// ===== TROVA CONTRATTO =====
+async function findPlayerInRosters(playerId) {
+
+  const xml = await getRosters();
+  const data = await parseXML(xml);
+
+  const franchises = data.league.franchises[0].franchise;
+  const rosters = data.league.rosters[0].franchise;
+
+  for (let team of rosters) {
+    const players = team.player || [];
+
+    for (let p of players) {
+      if (p.$.id === playerId) {
+
+        const franchise = franchises.find(f => f.$.id === team.$.id);
+
+        return {
+          team: franchise.$.name,
+          salary: parseInt(p.$.salary || 1000),
+          years: parseInt(p.$.contractYear || 1)
+        };
+      }
+    }
+  }
+
+  return null;
+}
+
+// ===== CALCOLO TAG =====
+function calculateTagCost(salary, years) {
+
+  // semplice formula esempio (puoi cambiarla)
+  return Math.round(salary * 1.2);
+}
+
+// ===== RICERCA REGOLAMENTO =====
 function findRelevantChunks(question) {
 
   const words = question.toLowerCase().split(" ");
@@ -64,7 +133,7 @@ function findRelevantChunks(question) {
   return bestChunk;
 }
 
-// ===== RISPOSTA =====
+// ===== AI =====
 async function handleQuestion(msg, question) {
 
   const userId = msg.from.id;
@@ -85,33 +154,17 @@ async function handleQuestion(msg, question) {
         {
           role: "system",
           content: `
-Sei 1st & Bot, assistente fantasy football.
-
 Rispondi SOLO usando il regolamento.
 
-Formato OBBLIGATORIO:
-
+Formato:
 🏈 REGOLA
-(spiegazione breve)
-
 🧠 SPIEGAZIONE
-(spiegazione semplice)
-
 💡 CONSIGLIO
-(consiglio pratico strategico)
-
-Se non sei sicuro → dillo chiaramente.
 `
         },
-        {
-          role: "system",
-          content: context
-        },
+        { role: "system", content: context },
         ...history,
-        {
-          role: "user",
-          content: question
-        }
+        { role: "user", content: question }
       ]
     });
 
@@ -130,31 +183,50 @@ Se non sei sicuro → dillo chiaramente.
   }
 }
 
-// ===== AUTO INTRO =====
-bot.on("new_chat_members", (msg) => {
+// ===== COMANDO TAG =====
+bot.onText(/\/tag (.+)/, async (msg, match) => {
 
-  msg.new_chat_members.forEach(user => {
+  const name = match[1];
 
-    if (user.username === botUsername) {
+  bot.sendMessage(msg.chat.id, "🔍 Cerco giocatore...");
 
-      bot.sendMessage(msg.chat.id,
-`🤖 1st & Bot ONLINE
+  try {
 
-Sono l’assistente ufficiale della lega 🏈
+    const player = await findPlayer(name);
 
-Chiedimi:
-- aste
-- tagli
-- trade
-- cap
-- regolamento
-
-Taggami oppure rispondi a un mio messaggio 👇`
-      );
-
+    if (!player) {
+      bot.sendMessage(msg.chat.id, "❌ Giocatore non trovato");
+      return;
     }
 
-  });
+    const info = await findPlayerInRosters(player.$.id);
+
+    if (!info) {
+      bot.sendMessage(msg.chat.id, "❌ Giocatore non a roster");
+      return;
+    }
+
+    const tagCost = calculateTagCost(info.salary, info.years);
+
+    bot.sendMessage(msg.chat.id,
+`🏷️ TAG CALCOLATION
+
+👤 ${player.$.name}
+🏈 Team: ${info.team}
+
+💰 Salario attuale: ${info.salary}
+📅 Anni: ${info.years}
+
+🔥 Tag stimato: ${tagCost}
+
+💡 Tip:
+valuta cap e durata prima di taggare`
+    );
+
+  } catch (err) {
+    console.error(err);
+    bot.sendMessage(msg.chat.id, "⚠ errore calcolo tag");
+  }
 
 });
 
@@ -165,22 +237,7 @@ bot.on("message", async (msg) => {
 
   const text = msg.text;
 
-  let isMentioned = false;
-
-  if (msg.entities) {
-    for (let e of msg.entities) {
-      if (e.type === "mention") {
-        const mention = text.substring(e.offset, e.offset + e.length);
-        if (mention.toLowerCase() === "@" + botUsername.toLowerCase()) {
-          isMentioned = true;
-        }
-      }
-    }
-  }
-
-  if (text.toLowerCase().includes("@" + botUsername.toLowerCase())) {
-    isMentioned = true;
-  }
+  let isMentioned = text.includes("@" + botUsername);
 
   const isReply =
     msg.reply_to_message &&
@@ -191,10 +248,7 @@ bot.on("message", async (msg) => {
 
   const question = text.replace(new RegExp(`@${botUsername}`, "i"), "").trim();
 
-  if (!question) {
-    bot.sendMessage(msg.chat.id, "Scrivi qualcosa 😄");
-    return;
-  }
+  if (!question) return;
 
   handleQuestion(msg, question);
 
