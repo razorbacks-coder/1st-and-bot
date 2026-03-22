@@ -15,12 +15,12 @@ exports.handler = async function () {
     // parse semplice
     const rosterIds = [...rosterText.matchAll(/id="(\d+)"/g)].map(m => m[1]);
 
-    const allPlayers = [...playersText.matchAll(/id="(\d+)" name="([^"]+)" position="([^"]+)"/g)]
-      .map(m => ({
-        id: m[1],
-        name: m[2],
-        pos: m[3]
-      }));
+    const allPlayers = [...playersText.matchAll(/id="(\d+)" name="([^"]+)".*?(position|pos)="([^"]+)"/g)]
+  .map(m => ({
+    id: m[1],
+    name: m[2],
+    pos: m[4]
+  }));
 
     // free agents
     const freeAgents = allPlayers.filter(p => !rosterIds.includes(p.id));
