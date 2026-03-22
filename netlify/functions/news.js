@@ -1,15 +1,25 @@
+const fetch = require("node-fetch");
 const Parser = require("rss-parser");
+
 const parser = new Parser();
 
 exports.handler = async function () {
 
   try {
 
-    const feed = await parser.parseURL("https://www.nfl.com/rss/rsslanding?searchString=home");
+    const res = await fetch("https://www.nfl.com/rss/rsslanding?searchString=home", {
+      headers: {
+        "User-Agent": "Mozilla/5.0"
+      }
+    });
+
+    const xml = await res.text();
+
+    const feed = await parser.parseString(xml);
 
     const news = feed.items.slice(0, 6).map(item => ({
       title: item.title,
-      text: item.contentSnippet || item.content || "",
+      text: item.contentSnippet || "",
       updated: Math.floor(new Date(item.pubDate).getTime() / 1000)
     }));
 
@@ -23,14 +33,14 @@ exports.handler = async function () {
 
   } catch (err) {
 
-    console.error("RSS ERROR:", err);
+    console.error("🔥 RSS ERROR:", err);
 
     return {
-      statusCode: 500,
+      statusCode: 200,
       body: JSON.stringify([
         {
-          title: "Errore news",
-          text: "RSS parsing fallito",
+          title: "⚠ News temporaneamente non disponibili",
+          text: "Problema nel feed NFL",
           updated: Math.floor(Date.now() / 1000)
         }
       ])
